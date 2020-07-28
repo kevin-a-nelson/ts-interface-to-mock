@@ -1,3 +1,17 @@
+import * as child from "child_process";
+
+child.exec("cat *.interface.ts", (error, stdout, stderr) => {
+    if (error) {
+        console.log(`error: ${error.message}`);
+        return;
+    }
+    if (stderr) {
+        console.log(`stderr: ${stderr}`);
+        return;
+    }
+    console.log(`stdout: ${stdout}`);
+});
+
 const userInput = ` 
 
 
@@ -28,7 +42,7 @@ function getInterfaces(userInput) {
     const userInputLines = userInput.split("\n");
     let getInterface = false;
     let interfaces = [];
-    let interface = [];
+    let myInterface = [];
     let brackets = [];
     let currentLine = "";
     for (let i = 0; i < userInputLines.length; i++) {
@@ -38,7 +52,7 @@ function getInterfaces(userInput) {
             getInterface = true;
         }
         if (getInterface) {
-            interface.push(currentLine);
+            myInterface.push(currentLine);
 
             if (currentLine.indexOf("{") !== -1) {
                 brackets.push("{");
@@ -48,21 +62,21 @@ function getInterfaces(userInput) {
             }
             if (brackets.length === 0) {
                 getInterface = false;
-                interfaces.push(interface.join("\n"));
-                interface = [];
+                interfaces.push(myInterface.join("\n"));
+                myInterface = [];
             }
         }
     }
     return interfaces;
 }
 
-function createMock(interface: string, interfaceNames) {
+function createMock(myInterface: string, interfaceNames) {
     const PATH_TO_INTERFACES = "@app/core/models/interfaces";
-    const interfaceName = interface.split(" ")[1];
+    const interfaceName = myInterface.split(" ")[1];
 
     const regex = new RegExp(`interface +${interfaceName}()`);
 
-    let mock: string = interface
+    let mock: string = myInterface
         .replace(/string;/g, "'',")
         .replace(/number;/g, "0,")
         .replace(/boolean;/g, "false,")
@@ -112,18 +126,18 @@ function createMock(interface: string, interfaceNames) {
 }
 
 function createMocks(interfaces) {
-    const interfaceNames = interfaces.map((interface) => {
-        return interface.split(" ")[1];
+    const interfaceNames = interfaces.map((myInterface) => {
+        return myInterface.split(" ")[1];
     });
-    const mocks = interfaces.map((interface) => {
-        return createMock(interface, interfaceNames);
+    const mocks = interfaces.map((myInterface) => {
+        return createMock(myInterface, interfaceNames);
     });
     return mocks;
 }
 
-const interfaces = getInterfaces(userInput);
-const mocks = createMocks(interfaces);
-mocks.forEach((mock) => {
-    console.log("\n\n\n");
-    console.log(mock);
-});
+// const interfaces = getInterfaces(userInput);
+// const mocks = createMocks(interfaces);
+// mocks.forEach((mock) => {
+//     console.log("\n\n\n");
+//     console.log(mock);
+// });
