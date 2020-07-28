@@ -1,0 +1,14 @@
+{
+  "dependencies": {
+    "typescript": "^3.9.7"
+  },
+  "name": "ts-interface-to-mock",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/kevin-a-nelson/ts-interface-to-mock.git",
+  "author": "Kevin Nelson <kevin.nelson13@chsinc.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^14.0.26"
+  }
+}
