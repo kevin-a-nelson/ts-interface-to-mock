@@ -27,9 +27,13 @@ function createMock(myInterface: string, interfaceNames: string[]) {
 
   let mock: string = myInterface
     .replace(/string;/g, "'',")
+    .replace(/string\[\];/g, "[''],")
     .replace(/number;/g, '0,')
+    .replace(/number\[\];/g, '[0],')
     .replace(/boolean;/g, 'false,')
+    .replace(/boolean\[\];/g, '[false],')
     .replace(/Date;/g, 'new Date(2000, 1, 30),')
+    .replace(/Date\[\];/g, '[new Date(2000, 1, 30)],')
     .replace(/\?:/g, ':')
     .replace(/import.*;/g, '')
     .replace(
@@ -149,7 +153,30 @@ function createFiles(dir: string, mocks: string[]) {
 
 createFiles(interfaceFolder, mocks);
 
-// for (let i = 0; i < 50; i++) {
-//   console.log(interfaces[i]);
-//   console.log(mocks[i]);
+// Prompt User for folder path
+// Loop through files in folder
+// Get text in all folders
+// get all interface names
+
+// Loop through files in folder
+// get interface name
+// get extended interface name
+// get interface keys
+
+// create extendedInterfaceKeysAndMockValues with extended interface name
+// create interfaceKeysAndMockValues with interface keys and all interface names
+// create getMockDependencyImports with interface keys and all interface names
+
+// ${getMockDependencyImports}
+// import ${interfaceName} from '../interfaces'
+//
+// export function getMock${interfaceName}(depth = 0): ${interfaceName} {
+//    If an interface has a recursive dependency, it will stop at 10
+//    if(depth === 10) {
+//      return
+//    }
+//    return {
+//      ${extendedInterfaceKeysAndMockValues}
+//      ${interfaceKeysAndMockValues}
+//    }
 // }
