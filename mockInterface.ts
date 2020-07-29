@@ -1,4 +1,5 @@
 import * as child from 'child_process';
+import * as rimraf from 'rimraf';
 
 import * as fs from 'fs';
 const interfaceFolder = '../Ag-Portal-UI/src/app/core/models/interfaces';
@@ -17,65 +18,12 @@ function getInterfaceFileNames(pathToInterfaces: string) {
   return interfaces;
 }
 
-const userInput = `
-interface Dependency {
-    example: Example[];
-    example2: Example;
-}
-
-
-interface Example {
-   lol: boolean; 
-}
-
-
-
-interface IEmployee {
-    number: number;
-    boolean: boolean;
-    Date: Date;
-    string: string;
-    questionMark?:string;
-    dependency: Dependency[];
-    test: Test[];
-} 
-   `;
-
-function getInterfaces(userInput) {
-  const userInputLines = userInput.split('\n');
-  let getInterface = false;
-  let interfaces = [];
-  let myInterface = [];
-  let brackets = [];
-  let currentLine = '';
-  for (let i = 0; i < userInputLines.length; i++) {
-    currentLine = userInputLines[i];
-
-    if (currentLine.indexOf('interface') !== -1) {
-      getInterface = true;
-    }
-    if (getInterface) {
-      myInterface.push(currentLine);
-
-      if (currentLine.indexOf('{') !== -1) {
-        brackets.push('{');
-      }
-      if (currentLine.indexOf('}') !== -1) {
-        brackets.pop();
-      }
-      if (brackets.length === 0) {
-        getInterface = false;
-        interfaces.push(myInterface.join('\n'));
-        myInterface = [];
-      }
-    }
-  }
-  return interfaces;
-}
-
 function createMock(myInterface: string, interfaceNames: string[]) {
   const PATH_TO_INTERFACES = "'@app/core/models/interfaces';";
-  const interfaceName = myInterface.match(/export\s+interface\s+(.*)\s+{/)[1];
+  let interfaceName = myInterface.match(/export\s+interface\s+(.*)\s+{/)[1];
+  if (interfaceName.match(/\s+extends\s+/)) {
+    interfaceName = interfaceName.match(/(.*)\s+extends/)[1];
+  }
 
   let mock: string = myInterface
     .replace(/string;/g, "'',")
@@ -89,13 +37,19 @@ function createMock(myInterface: string, interfaceNames: string[]) {
       `function getMock${interfaceName}(): ${interfaceName}`
     );
 
+  let extendedDependency = '';
+  if (mock.match(/\s+extends\s+.*\{/)) {
+    extendedDependency = mock.match(/\s+extends\s+(\w+)/)[1];
+    mock = mock.replace(/\s+extends\s+\w+/, '');
+  }
+
   let dependencies = [];
   interfaceNames.forEach((interfaceName) => {
     const interfaceListDependency = new RegExp(
       `:\\s+${interfaceName}\\[\\];`,
       'g'
     );
-    const interfaceDependency = new RegExp(`:\\s+${interfaceName}\\s+;`, 'g');
+    const interfaceDependency = new RegExp(`:\\s+${interfaceName};`, 'g');
     if (
       mock.match(interfaceDependency) ||
       mock.match(interfaceListDependency)
@@ -134,8 +88,23 @@ function createMock(myInterface: string, interfaceNames: string[]) {
   mockLines.splice(functionDefinitionIndex + 1, 0, 'return {');
   mockLines.splice(lastBracketIndex + 1, 0, '};');
 
+  if (extendedDependency) {
+    mockLines.forEach((mockLine, index) => {
+      if (mockLine.match(/return\s+\{/)) {
+        functionDefinitionIndex = index;
+        return;
+      }
+    });
+    mockLines.splice(
+      functionDefinitionIndex + 1,
+      0,
+      `...getMock${extendedDependency}(),`
+    );
+    mockLines.unshift(`import { getMock${extendedDependency} } from './';`);
+  }
+
   dependencies.forEach((dependency) => {
-    mockLines.unshift(`import { getMock${dependency} } from ./`);
+    mockLines.unshift(`import { getMock${dependency} } from './';`);
   });
 
   mockLines.unshift(`import { ${interfaceName} } from '../';`);
@@ -158,11 +127,15 @@ const mocks = createMocks(interfaces);
 
 function createFiles(dir: string, mocks: string[]) {
   const interfaceNames = [];
+  fs.rmdirSync(dir + '/mockObjects', { recursive: true });
   if (!fs.existsSync(dir + '/mockObjects')) {
     fs.mkdirSync(dir + '/mockObjects');
   }
   mocks.forEach((mock) => {
-    const interfaceName = mock.match(/:\s+(.*)\s+{/)[1];
+    let interfaceName = mock.match(/:\s+(.*)\s+{/)[1];
+    if (interfaceName.match(/\s+extends\s+/)) {
+      interfaceName = interfaceName.match(/(.*)\s+extends/)[1];
+    }
     interfaceNames.push(interfaceName);
     fs.writeFileSync(`${dir}/mockObjects/${interfaceName}.mock.ts`, mock);
   });
